@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Load user on app start
+  // Load user
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
@@ -19,25 +19,19 @@ export const AuthProvider = ({ children }) => {
           setUser(parsed);
         } else {
           localStorage.removeItem("user");
-          setUser(null);
         }
       }
     } catch (err) {
-      console.log("Auth load error:", err);
       localStorage.removeItem("user");
-      setUser(null);
     }
 
     setLoading(false);
   }, []);
 
-  // 🔥 LOGIN (production-ready)
+  // ✅ LOGIN
   const login = async (email, password) => {
     try {
-      const res = await api.post("/auth/login", {
-        email,
-        password,
-      });
+      const res = await api.post("/auth/login", { email, password });
 
       const data = res.data;
 
@@ -58,14 +52,38 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔹 LOGOUT
+  // ✅ REGISTER (OUTSIDE login)
+  const register = async (formData) => {
+    try {
+      const res = await api.post("/auth/register", formData);
+
+      const data = res.data;
+
+      const userToStore = {
+        ...data,
+        token: data.token || data.accessToken,
+      };
+
+      setUser(userToStore);
+      localStorage.setItem("user", JSON.stringify(userToStore));
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.message || "Register failed",
+      };
+    }
+  };
+
+  // LOGOUT
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
